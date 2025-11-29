@@ -7,8 +7,19 @@ import { generateUsername } from '../utils/usernameGenerator.js';
 
 const router = express.Router();
 
-// Initialize callback URL for auth47
-const callbackUrl = process.env.CALLBACK_URL || process.env.NGROK_URL || 'http://localhost:3001/authenticate';
+// Helper function to get callback URL - prioritize production URLs
+function getCallbackUrl() {
+  // In production, use the Railway URL
+  if (process.env.NODE_ENV === 'production' && process.env.CALLBACK_URL) {
+    return process.env.CALLBACK_URL;
+  }
+  // In development with ngrok, use ngrok URL
+  if (process.env.NGROK_URL) {
+    return `${process.env.NGROK_URL}/api/auth/authenticate`;
+  }
+  // Fallback to local development
+  return process.env.CALLBACK_URL || 'http://localhost:3001/api/auth/authenticate';
+}
 
 // Helper function to generate auth47 URI format
 function generateAuth47URI(nonce, callback, expiresAt) {
@@ -117,14 +128,17 @@ router.get('/challenge', (req, res) => {
     const nonce = crypto.randomBytes(12).toString('hex');
     const expiresAt = Math.floor(Date.now() / 1000) + 300; // 5 minutes
     
+    // Get the current callback URL
+    const currentCallbackUrl = getCallbackUrl();
+    
     // Use our custom auth47 URI generation
-    const auth47Uri = generateAuth47URI(nonce, callbackUrl, expiresAt);
+    const auth47Uri = generateAuth47URI(nonce, currentCallbackUrl, expiresAt);
     
     challenges.set(nonce, {
       created: Date.now(),
       expiresAt,
       used: false,
-      callbackUrl
+      callbackUrl: currentCallbackUrl
     });
     
     // Clean up old challenges
@@ -135,7 +149,7 @@ router.get('/challenge', (req, res) => {
     res.json({ 
       auth47Uri,
       nonce,
-      callbackUrl,
+      callbackUrl: currentCallbackUrl,
       expiresAt
     });
   } catch (error) {
