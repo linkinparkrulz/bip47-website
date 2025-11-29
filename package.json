@@ -1,0 +1,26 @@
+{
+  "name": "bip47-paynym-showcase",
+  "version": "1.0.0",
+  "description": "BIP47 & Paynym Showcase with auth47 authentication",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "build": "cd backend && npm install",
+    "install": "cd backend && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/linkinparkrulz/bip47-website.git"
+  },
+  "keywords": [
+    "bitcoin",
+    "bip47",
+    "paynym",
+    "auth47",
+    "cryptography"
+  ],
+  "author": "linkinparkrulz",
+  "license": "MIT"
+}

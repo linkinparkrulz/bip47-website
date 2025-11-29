@@ -1,7 +1,5 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "cd backend && npm install"
-startCommand = "cd backend && npm start"
 
 [deploy]
 healthcheckPath = "/api/health"
@@ -18,8 +16,6 @@ PORT = "3001"
 
 [services.build]
 builder = "NIXPACKS"
-buildCommand = "cd backend && npm install"
-startCommand = "cd backend && npm start"
 
 [services.deploy]
 healthcheckPath = "/api/health"
