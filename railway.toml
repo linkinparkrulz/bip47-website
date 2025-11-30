@@ -12,7 +12,6 @@ name = "backend"
 
 [services.variables]
 NODE_ENV = "production"
-PORT = "3001"
 
 [services.build]
 builder = "NIXPACKS"
