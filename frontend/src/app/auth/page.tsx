@@ -1,15 +1,34 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import QRCode from 'qrcode'
 
 export default function AuthPage() {
   const [auth47Uri, setAuth47Uri] = useState('')
+  const [qrCodeUrl, setQrCodeUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const generateQRCode = async (uri: string) => {
+    try {
+      const qrDataUrl = await QRCode.toDataURL(uri, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#00ff41',
+          light: '#000000'
+        }
+      })
+      setQrCodeUrl(qrDataUrl)
+    } catch (err) {
+      console.error('Error generating QR code:', err)
+    }
+  }
 
   const generateChallenge = async () => {
     setLoading(true)
     setError('')
+    setQrCodeUrl('')
     
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://bip47-website.up.railway.app'}/api/auth/challenge`)
@@ -17,6 +36,7 @@ export default function AuthPage() {
       
       if (data.auth47Uri) {
         setAuth47Uri(data.auth47Uri)
+        await generateQRCode(data.auth47Uri)
       } else {
         setError('Failed to generate auth47 URI')
       }
@@ -130,13 +150,21 @@ export default function AuthPage() {
                   </p>
                   <div className="mt-4 flex justify-center">
                     <div className="bg-white p-4 border-2 border-terminal-green rounded">
-                      <div className="w-48 h-48 bg-black flex items-center justify-center">
-                        <span className="text-terminal-green text-xs">QR CODE</span>
-                      </div>
+                      {qrCodeUrl ? (
+                        <img 
+                          src={qrCodeUrl} 
+                          alt="Auth47 QR Code" 
+                          className="w-48 h-48"
+                        />
+                      ) : (
+                        <div className="w-48 h-48 bg-black flex items-center justify-center">
+                          <div className="cyber-loader"></div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <p className="text-cyber-blue mt-4 text-center">
-                    ✓ QR code generated successfully
+                    {qrCodeUrl ? '✓ QR code generated successfully' : '⚠ Generating QR code...'}
                   </p>
                 </div>
               </div>
