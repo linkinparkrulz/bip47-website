@@ -158,7 +158,7 @@ router.get('/challenge', (req, res) => {
   }
 });
 
-// Handle auth47 callback from wallet using proper Auth47Verifier
+// Handle auth47 callback from wallet using proper Auth47Verifier (GET method)
 router.get('/authenticate', (req, res) => {
   try {
     const { auth47_response, challenge, nym, signature } = req.query;
@@ -252,6 +252,106 @@ router.get('/authenticate', (req, res) => {
           <h1>AUTHENTICATION ERROR</h1>
           <p>Server error during authentication</p>
           <a href="http://localhost:3000/auth" style="color: #0f0;">Try Again</a>
+        </body>
+      </html>
+    `);
+  }
+});
+
+// Handle auth47 callback from wallet using proper Auth47Verifier (POST method)
+router.post('/authenticate', (req, res) => {
+  try {
+    const { auth47_response, challenge, nym, signature } = req.body;
+    
+    if (!auth47_response || !challenge || !nym || !signature) {
+      return res.status(400).send(`
+        <html>
+          <body style="background: #000; color: #0f0; font-family: monospace; text-align: center; padding: 2rem;">
+            <h1>AUTHENTICATION FAILED</h1>
+            <p>Missing required auth47 parameters</p>
+            <p>Expected: auth47_response, challenge, nym, signature</p>
+            <a href="https://bip47-website.vercel.app/auth" style="color: #0f0;">Try Again</a>
+          </body>
+        </html>
+      `);
+    }
+    
+    // Create proof object for Auth47Verifier
+    const proof = {
+      'auth47_response': auth47_response,
+      'challenge': challenge,
+      'nym': nym,
+      'signature': signature
+    };
+    
+    // Verify the proof using our custom auth47 verification
+    const verifiedProof = verifyAuth47Proof(proof);
+    
+    if (verifiedProof.result !== 'ok') {
+      console.error('Auth47 verification failed:', verifiedProof.error);
+      return res.status(400).send(`
+        <html>
+          <body style="background: #000; color: #0f0; font-family: monospace; text-align: center; padding: 2rem;">
+            <h1>AUTHENTICATION FAILED</h1>
+            <p>Invalid proof: ${verifiedProof.error || 'Unknown error'}</p>
+            <a href="https://bip47-website.vercel.app/auth" style="color: #0f0;">Try Again</a>
+          </body>
+        </html>
+      `);
+    }
+    
+    // Mark challenge as used in our tracking
+    if (verifiedProof.nonce) {
+      const challengeData = challenges.get(verifiedProof.nonce);
+      if (challengeData) {
+        challengeData.used = true;
+      }
+    }
+    
+    // Generate username from public key (nym)
+    const username = generateUsername(verifiedProof.publicKey);
+    
+    // Create JWT token
+    const token = jwt.sign(
+      { 
+        publicKey: verifiedProof.publicKey, 
+        username,
+        iat: Math.floor(Date.now() / 1000)
+      },
+      req.app.locals.jwtSecret,
+      { expiresIn: '24h' }
+    );
+    
+    // Success page with token
+    res.send(`
+      <html>
+        <body style="background: #000; color: #0f0; font-family: monospace; text-align: center; padding: 2rem;">
+          <h1>AUTHENTICATION SUCCESSFUL</h1>
+          <p>Welcome, ${username}!</p>
+          <p>Auth47 proof verified successfully</p>
+          <p>Redirecting to dashboard...</p>
+          <script>
+            localStorage.setItem('authToken', '${token}');
+            localStorage.setItem('user', JSON.stringify({
+              username: '${username}',
+              publicKey: '${verifiedProof.publicKey}'
+            }));
+            setTimeout(() => {
+              window.location.href = 'https://bip47-website.vercel.app/dashboard';
+            }, 2000);
+          </script>
+        </body>
+      </html>
+    `);
+    
+  } catch (error) {
+    console.error('Error during auth47 authentication:', error);
+    res.status(500).send(`
+      <html>
+        <body style="background: #000; color: #0f0; font-family: monospace; text-align: center; padding: 2rem;">
+          <h1>AUTHENTICATION ERROR</h1>
+          <p>Server error during authentication</p>
+          <a href="https://bip47-website.vercel.app/auth" style="color: #0f0;">Try Again</a>
         </body>
       </html>
     `);
