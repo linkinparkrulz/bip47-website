@@ -1,7 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import * as bitcoinMessage from '@samouraiwallet/bitcoinjs-message';
+import { verify } from '@samouraiwallet/bitcoinjs-message';
 import { generateUsername } from '../utils/usernameGenerator.js';
 
 const router = express.Router();
@@ -46,7 +46,7 @@ function verifyAuth47Proof(proof) {
     try {
       // Verify signature using bitcoinjs-message (auth47 standard)
       // This handles the Bitcoin message signing format automatically
-      const isValidSignature = bitcoinMessage.verify(challenge, nym, signature);
+      const isValidSignature = verify(challenge, nym, signature);
       
       if (!isValidSignature) {
         return { result: 'error', error: 'Invalid signature' };
