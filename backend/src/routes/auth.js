@@ -1,8 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import * as secp256k1 from '@noble/secp256k1';
-import { sha256 } from '@noble/hashes/sha256';
+import * as bitcoinMessage from '@samouraiwallet/bitcoinjs-message';
 import { generateUsername } from '../utils/usernameGenerator.js';
 
 const router = express.Router();
@@ -26,33 +25,7 @@ function generateAuth47URI(nonce, callback, expiresAt) {
   return `auth47://${nonce}?c=${callback}&e=${expiresAt}`;
 }
 
-// Helper function to create Bitcoin message hash
-function magicHash(message) {
-  const messagePrefix = '\u0018Bitcoin Signed Message:\n';
-  const messageBytes = new TextEncoder().encode(message);
-  const prefixBytes = new TextEncoder().encode(messagePrefix);
-  
-  // Create message with varint length
-  const messageLength = messageBytes.length;
-  const lengthBytes = [];
-  let len = messageLength;
-  while (len >= 0x80) {
-    lengthBytes.push((len & 0x7f) | 0x80);
-    len >>= 7;
-  }
-  lengthBytes.push(len);
-  
-  // Combine all parts
-  const combined = new Uint8Array(prefixBytes.length + lengthBytes.length + messageBytes.length);
-  combined.set(prefixBytes, 0);
-  combined.set(lengthBytes, prefixBytes.length);
-  combined.set(messageBytes, prefixBytes.length + lengthBytes.length);
-  
-  // Double SHA256
-  return sha256(sha256(combined));
-}
-
-// Helper function to verify auth47 proof using noble/secp256k1
+// Helper function to verify auth47 proof using bitcoinjs-message (auth47 spec compliant)
 function verifyAuth47Proof(proof) {
   try {
     const { auth47_response, challenge, nym, signature } = proof;
@@ -70,40 +43,10 @@ function verifyAuth47Proof(proof) {
     
     const nonce = nonceMatch[1];
     
-    // Convert signature from base64 to bytes
-    let signatureBytes;
     try {
-      signatureBytes = Uint8Array.from(atob(signature), c => c.charCodeAt(0));
-    } catch (e) {
-      return { result: 'error', error: 'Invalid signature format' };
-    }
-    
-    // Parse signature to extract recovery flag
-    if (signatureBytes.length !== 65) {
-      return { result: 'error', error: 'Invalid signature length' };
-    }
-    
-    const recoveryFlag = signatureBytes[0] - 27;
-    if (recoveryFlag < 0 || recoveryFlag > 7) {
-      return { result: 'error', error: 'Invalid recovery flag' };
-    }
-    
-    const signatureData = signatureBytes.slice(1);
-    
-    // Create message hash
-    const messageHash = magicHash(challenge);
-    
-    // Convert public key from hex to bytes
-    let publicKeyBytes;
-    try {
-      publicKeyBytes = new Uint8Array(nym.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-    } catch (e) {
-      return { result: 'error', error: 'Invalid public key format' };
-    }
-    
-    try {
-      // Verify signature using noble/secp256k1
-      const isValidSignature = secp256k1.verify(signatureData, messageHash, publicKeyBytes);
+      // Verify signature using bitcoinjs-message (auth47 standard)
+      // This handles the Bitcoin message signing format automatically
+      const isValidSignature = bitcoinMessage.verify(challenge, nym, signature);
       
       if (!isValidSignature) {
         return { result: 'error', error: 'Invalid signature' };
