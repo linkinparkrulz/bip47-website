@@ -101,6 +101,7 @@ Thumbs.db
 # Auth47 specific
 ngrok-logs/
 *.log
+auth47/
 
 # Development secrets
 secrets/

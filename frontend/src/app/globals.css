@@ -5,30 +5,44 @@
 @tailwind utilities;
 
 /* Cypherpunk Base Styles */
-:root {
-  --terminal-green: #00ff41;
-  --terminal-amber: #ffb000;
-  --cyber-blue: #00ffff;
-  --cyber-red: #ff0040;
-  --dark-bg: #0a0a0a;
-  --darker-bg: #050505;
-}
+@layer base {
+  :root {
+    --terminal-green: #00ff41;
+    --terminal-amber: #ffb000;
+    --cyber-blue: #00ffff;
+    --cyber-red: #ff0040;
+    --dark-bg: #0a0a0a;
+    --darker-bg: #050505;
+    --terminal-black: #000000;
+  }
 
-* {
-  box-sizing: border-box;
-}
+  * {
+    box-sizing: border-box;
+  }
 
-html {
-  scroll-behavior: smooth;
-}
+  html {
+    scroll-behavior: smooth;
+  }
 
-body {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-  background: var(--darker-bg);
-  color: var(--terminal-green);
-  overflow-x: hidden;
-  position: relative;
-  min-height: 100vh;
+  body {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    background: var(--darker-bg);
+    color: var(--terminal-green);
+    overflow-x: hidden;
+    position: relative;
+    min-height: 100vh;
+  }
+
+  /* Selection Styles */
+  ::selection {
+    background: var(--terminal-green);
+    color: var(--dark-bg);
+  }
+
+  ::-moz-selection {
+    background: var(--terminal-green);
+    color: var(--dark-bg);
+  }
 }
 
 /* CRT Monitor Effect */
@@ -220,6 +234,8 @@ body::before {
   overflow: hidden;
   transition: all 0.3s ease;
   cursor: pointer;
+  display: inline-block;
+  text-decoration: none;
 }
 
 .cyber-button::before {
@@ -244,34 +260,6 @@ body::before {
 
 .cyber-button:hover::before {
   left: 0;
-}
-
-/* ASCII Art Borders */
-.ascii-border {
-  border: 1px solid var(--terminal-green);
-  position: relative;
-}
-
-.ascii-border::before {
-  content: "┌─────────────────────────────────┐";
-  position: absolute;
-  top: -12px;
-  left: -1px;
-  color: var(--terminal-green);
-  font-family: 'VT323', monospace;
-  font-size: 12px;
-  white-space: pre;
-}
-
-.ascii-border::after {
-  content: "└─────────────────────────────────┘";
-  position: absolute;
-  bottom: -12px;
-  left: -1px;
-  color: var(--terminal-green);
-  font-family: 'VT323', monospace;
-  font-size: 12px;
-  white-space: pre;
 }
 
 /* Terminal Cursor */
@@ -301,6 +289,7 @@ body::before {
   border-radius: 50%;
   animation: spin 1s linear infinite;
   box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+  display: inline-block;
 }
 
 /* Custom Scrollbar */
@@ -322,39 +311,47 @@ body::before {
   box-shadow: 0 0 10px rgba(255, 176, 0, 0.5);
 }
 
-/* Selection Styles */
-::selection {
-  background: var(--terminal-green);
-  color: var(--dark-bg);
-}
-
-::-moz-selection {
-  background: var(--terminal-green);
-  color: var(--dark-bg);
-}
-
-/* Focus Styles */
-.cyber-focus:focus {
-  outline: none;
-  box-shadow: 
-    0 0 0 2px var(--terminal-green),
-    0 0 20px rgba(0, 255, 65, 0.5);
-}
-
 /* Utility Classes */
-.text-glow {
-  text-shadow: 0 0 10px currentColor;
-}
+@layer components {
+  .bg-dark-bg {
+    background-color: var(--dark-bg);
+  }
 
-.border-glow {
-  box-shadow: 0 0 10px currentColor, inset 0 0 10px currentColor;
-}
+  .bg-terminal-black {
+    background-color: var(--terminal-black);
+  }
 
-.bg-cyber-grid {
-  background-image: 
-    linear-gradient(rgba(0, 255, 65, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 65, 0.1) 1px, transparent 1px);
-  background-size: 50px 50px;
+  .text-terminal-green {
+    color: var(--terminal-green);
+  }
+
+  .text-terminal-amber {
+    color: var(--terminal-amber);
+  }
+
+  .text-cyber-blue {
+    color: var(--cyber-blue);
+  }
+
+  .text-cyber-red {
+    color: var(--cyber-red);
+  }
+
+  .border-terminal-green {
+    border-color: var(--terminal-green);
+  }
+
+  .animate-pulse-cyber {
+    animation: pulse-cyber 2s infinite;
+  }
+
+  .shadow-cyber {
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.5), 0 0 40px rgba(0, 255, 65, 0.3);
+  }
+
+  .backdrop-blur-cyber {
+    backdrop-filter: blur(8px);
+  }
 }
 
 /* Responsive Design */
@@ -370,6 +367,33 @@ body::before {
 }
 
 /* Animation Keyframes */
+@keyframes glitch {
+  0%, 100% {
+    text-shadow: 
+      0.05em 0 0 rgba(255, 0, 0, 0.75),
+      -0.05em -0.025em 0 rgba(0, 255, 0, 0.75),
+      0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
+  }
+  25% {
+    text-shadow: 
+      -0.05em -0.025em 0 rgba(255, 0, 0, 0.75),
+      0.05em 0.025em 0 rgba(0, 255, 0, 0.75),
+      -0.05em -0.05em 0 rgba(0, 0, 255, 0.75);
+  }
+  50% {
+    text-shadow: 
+      0.025em 0.05em 0 rgba(255, 0, 0, 0.75),
+      0.05em 0 0 rgba(0, 255, 0, 0.75),
+      0 -0.05em 0 rgba(0, 0, 255, 0.75);
+  }
+  75% {
+    text-shadow: 
+      -0.025em 0 0 rgba(255, 0, 0, 0.75),
+      -0.05em -0.05em 0 rgba(0, 255, 0, 0.75),
+      -0.025em -0.05em 0 rgba(0, 0, 255, 0.75);
+  }
+}
+
 @keyframes glitch-1 {
   0%, 100% {
     clip-path: inset(0 0 0 0);
@@ -434,4 +458,38 @@ body::before {
 @keyframes terminal-cursor {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
+}
+
+@keyframes text-glitch {
+  0%, 100% {
+    transform: translate(0);
+    filter: hue-rotate(0deg);
+  }
+  20% {
+    transform: translate(-1px, 1px);
+    filter: hue-rotate(90deg);
+  }
+  40% {
+    transform: translate(-1px, -1px);
+    filter: hue-rotate(180deg);
+  }
+  60% {
+    transform: translate(1px, 1px);
+    filter: hue-rotate(270deg);
+  }
+  80% {
+    transform: translate(1px, -1px);
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes pulse-cyber {
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 10px currentColor;
+  }
+  50% {
+    opacity: 0.8;
+    text-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+  }
 }
