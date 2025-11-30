@@ -12,7 +12,7 @@ export default function AuthPage() {
     setError('')
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/challenge`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://bip47-website.up.railway.app'}/api/auth/challenge`)
       const data = await response.json()
       
       if (data.auth47Uri) {
