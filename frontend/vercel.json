@@ -1,7 +1,7 @@
 {
   "version": 2,
   "env": {
-    "NEXT_PUBLIC_API_URL": "@backend_url"
+    "NEXT_PUBLIC_API_URL": "https://bip47-website-production.up.railway.app"
   },
   "regions": ["iad1"],
   "functions": {
@@ -12,7 +12,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "@backend_url/api/:path*"
+      "destination": "https://bip47-website-production.up.railway.app/api/:path*"
     }
   ]
 }
