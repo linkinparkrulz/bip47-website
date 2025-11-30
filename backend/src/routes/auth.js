@@ -2,7 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import * as secp256k1 from '@noble/secp256k1';
-import { sha256 } from '@noble/hashes/sha2';
+import { sha256 } from '@noble/hashes/sha256';
 import { generateUsername } from '../utils/usernameGenerator.js';
 
 const router = express.Router();
