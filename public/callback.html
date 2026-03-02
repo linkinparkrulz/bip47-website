@@ -10,291 +10,378 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/logos/favicons/apple-touch-icon.png">
     <link rel="manifest" href="/logos/favicons/site.webmanifest">
     <link rel="stylesheet" href="styles.css">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    body {
-      font-family: var(--font-data);
-      background: var(--bg-primary);
-      color: var(--accent-primary);
-      padding: 2rem;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .container {
-      max-width: 700px;
-      text-align: center;
-    }
-    
-    h1 {
-      font-size: 3rem;
-      margin-bottom: 0.5rem;
-      animation: bounce 0.6s ease-in-out;
-    }
-    
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-20px); }
-      60% { transform: translateY(-10px); }
-    }
-    
-    .avatar {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      border: 3px solid #00ff41;
-      margin: 1.5rem auto;
-      display: none;
-      object-fit: cover;
-      box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
-    }
-    
-    .avatar.show {
-      display: block;
-    }
-    
-    p {
-      font-size: 1.1rem;
-      line-height: 1.6;
-      margin: 0.8rem 0;
-      color: #00ff41;
-    }
-    
-    .success { color: #00ff41; font-weight: bold; }
-    .nym-name { 
-      color: #00ff41; 
-      font-size: 1.4rem; 
-      margin: 1rem 0;
-    }
-    .payment-code { 
-      color: #888; 
-      font-size: 0.9rem; 
-      word-break: break-all;
-      font-family: 'Courier New', monospace;
-      margin: 0.5rem 0;
-      background: rgba(0, 255, 65, 0.1);
-      padding: 0.8rem;
-      border-radius: 4px;
-      border: 1px solid rgba(0, 255, 65, 0.3);
-    }
-    .countdown { 
-      color: #00ff41; 
-      font-size: 1.3rem;
-      font-weight: bold;
-      margin: 1.5rem 0;
-    }
-    
-    .spinner {
-      display: inline-block;
-      width: 30px;
-      height: 30px;
-      border: 4px solid rgba(0, 255, 65, 0.3);
-      border-top-color: #00ff41;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 1.5rem auto;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .return-btn {
-      background: #00ff41;
-      color: #0a0e27;
-      border: none;
-      padding: 1rem 2rem;
-      font-family: 'Courier New', monospace;
-      font-size: 1rem;
-      cursor: pointer;
-      margin-top: 1.5rem;
-      font-weight: bold;
-      text-decoration: none;
-      display: inline-block;
-    }
-    
-    .return-btn:hover {
-      background: #00cc33;
-      box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
-    }
-    
-    .error { color: #ff4444; }
-    .hidden { display: none; }
-  </style>
+    <style>
+        /* Page-specific styles for callback.html */
+        
+        .callback-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: var(--space-2xl);
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .status-icon {
+            font-size: 4rem;
+            margin-bottom: var(--space-lg);
+            animation: fadeInScale 0.5s ease-out;
+        }
+        
+        @keyframes fadeInScale {
+            from { 
+                opacity: 0; 
+                transform: scale(0.8); 
+            }
+            to { 
+                opacity: 1; 
+                transform: scale(1); 
+            }
+        }
+        
+        .status-icon.success {
+            color: var(--accent-success);
+        }
+        
+        .status-icon.error {
+            color: var(--accent-error);
+        }
+        
+        .status-icon.pending {
+            color: var(--accent-warning);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .status-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-sm);
+        }
+        
+        .status-title.success {
+            color: var(--accent-success);
+        }
+        
+        .status-title.error {
+            color: var(--accent-error);
+        }
+        
+        .status-message {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: var(--space-lg);
+        }
+        
+        .spinner-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            color: var(--accent-warning);
+            margin: var(--space-lg) 0;
+        }
+        
+        .spinner-large {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border-subtle);
+            border-top-color: var(--accent-warning);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid var(--accent-primary);
+            margin: var(--space-lg) auto;
+            display: none;
+            object-fit: cover;
+            box-shadow: 0 0 20px var(--glow-subtle);
+        }
+        
+        .avatar.show {
+            display: block;
+            animation: fadeInScale 0.4s ease-out;
+        }
+        
+        .nym-name {
+            color: var(--accent-primary);
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: var(--space-md) 0;
+            font-family: var(--font-display);
+        }
+        
+        .payment-code {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            word-break: break-all;
+            font-family: var(--font-data);
+            margin: var(--space-sm) auto;
+            background: var(--bg-primary);
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+            max-width: 500px;
+        }
+        
+        .countdown {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: var(--space-xl) 0 var(--space-md);
+        }
+        
+        .countdown-number {
+            color: var(--accent-primary);
+            font-weight: 600;
+            font-family: var(--font-data);
+        }
+        
+        .return-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            color: var(--accent-primary);
+            padding: var(--space-sm) var(--space-lg);
+            font-family: var(--font-ui);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-normal);
+            text-decoration: none;
+            display: inline-block;
+            margin-top: var(--space-md);
+        }
+        
+        .return-btn:hover {
+            background: var(--bg-elevated);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 16px var(--glow-subtle);
+            transform: translateY(-1px);
+        }
+        
+        .error-details {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: var(--space-sm);
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
-  <div class="container" id="container">
-    <h1 id="status-icon">⏳</h1>
-    <p id="status-text" class="success">Verifying authentication...</p>
-    <div class="spinner" id="spinner"></div>
-    
-    <div id="success-content" class="hidden">
-      <img id="avatar" class="avatar" alt="Paynym Avatar">
-      <p class="nym-name" id="nym-name"></p>
-      <p class="payment-code" id="payment-code"></p>
-      <p class="countdown">
-        Redirecting to terminal in <span id="countdown-timer">10</span> seconds...
-      </p>
-      <a href="/auth" class="return-btn">Return to Terminal Now</a>
+    <div class="container">
+        <div class="nav-bar">
+            <a href="/" class="back-link">← Back to Home</a>
+            <span style="color: var(--text-muted); font-size: 0.8rem;">[AUTH CALLBACK]</span>
+        </div>
+        
+        <div class="main-content">
+            <div class="callback-card">
+                <!-- Pending State -->
+                <div id="pending-state">
+                    <div class="status-icon pending">⏳</div>
+                    <h1 class="status-title">Verifying Authentication</h1>
+                    <p class="status-message">Please wait while we verify your identity...</p>
+                    <div class="spinner-container">
+                        <div class="spinner-large"></div>
+                        <span>Processing</span>
+                    </div>
+                </div>
+                
+                <!-- Success State -->
+                <div id="success-state" class="hidden">
+                    <div class="status-icon success">✅</div>
+                    <h1 class="status-title success">Authentication Successful</h1>
+                    <p class="status-message">Your identity has been verified</p>
+                    
+                    <img id="avatar" class="avatar" alt="Paynym Avatar">
+                    <p class="nym-name" id="nym-name"></p>
+                    <p class="payment-code" id="payment-code"></p>
+                    
+                    <p class="countdown">
+                        Redirecting to terminal in <span id="countdown-timer" class="countdown-number">10</span> seconds...
+                    </p>
+                    <a href="/auth" class="return-btn">Return to Terminal Now</a>
+                </div>
+                
+                <!-- Error State -->
+                <div id="error-state" class="hidden">
+                    <div class="status-icon error">❌</div>
+                    <h1 class="status-title error">Authentication Failed</h1>
+                    <p class="status-message">We couldn't verify your identity</p>
+                    <p class="error-details" id="error-details">Invalid signature or expired challenge</p>
+                    <a href="/auth" class="return-btn">Try Again</a>
+                </div>
+            </div>
+        </div>
     </div>
     
-    <div id="error-content" class="hidden">
-      <p class="error">❌ Authentication Failed</p>
-      <p>Invalid signature or expired challenge</p>
-      <a href="/auth" class="return-btn">Return to Auth Page</a>
+    <div class="footer">
+        <div class="footer-text">Built with <span class="footer-heart">♥</span> for the cypherpunk community</div>
+        <div class="footer-text">Privacy is a human right</div>
     </div>
-  </div>
 
-  <script>
-    const NONCE_PARAM = 'nonce';
-    const COUNTDOWN_SECONDS = 10;
-    
-    // Get nonce from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const nonce = urlParams.get(NONCE_PARAM);
-    
-    if (!nonce) {
-      showError('Missing nonce parameter');
-      return;
-    }
-    
-    console.log('🔍 Verifying authentication for nonce:', nonce);
-    
-    // Poll for auth status
-    let attempts = 0;
-    const maxAttempts = 20; // 10 seconds at 500ms intervals
-    const pollInterval = 500;
-    
-    const pollAuthStatus = async () => {
-      try {
-        const response = await fetch(`/check-auth/${nonce}`);
-        const data = await response.json();
+    <script>
+        const NONCE_PARAM = 'nonce';
+        const COUNTDOWN_SECONDS = 10;
         
-        console.log('📊 Auth status:', data);
+        // Get nonce from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const nonce = urlParams.get(NONCE_PARAM);
         
-        if (data.status === 'verified') {
-          showSuccess(data);
-          return;
+        if (!nonce) {
+            showError('Missing nonce parameter');
+        } else {
+            console.log('🔍 Verifying authentication for nonce:', nonce);
+            startPolling();
         }
         
-        if (data.status === 'invalid') {
-          showError('Invalid or expired authentication');
-          return;
-        }
-        
-        // Still pending, continue polling
-        attempts++;
-        if (attempts >= maxAttempts) {
-          showError('Authentication timeout');
-          return;
-        }
-        
-        setTimeout(pollAuthStatus, pollInterval);
-        
-      } catch (error) {
-        console.error('❌ Polling error:', error);
-        showError('Failed to verify authentication');
-      }
-    };
-    
-    const showSuccess = (data) => {
-      console.log('✅ Authentication verified:', data);
-      
-      // Hide spinner, show success content
-      document.getElementById('spinner').classList.add('hidden');
-      document.getElementById('status-text').textContent = 'Authentication Successful!';
-      document.getElementById('status-icon').textContent = '✅';
-      
-      const successContent = document.getElementById('success-content');
-      successContent.classList.remove('hidden');
-      
-      // Display nym name
-      if (data.nym) {
-        document.getElementById('nym-name').textContent = data.nym;
-      }
-      
-      // Display payment code
-      if (data.paymentCode) {
-        document.getElementById('payment-code').textContent = data.paymentCode;
-      }
-      
-      // Fetch and display avatar
-      fetchPaynymAvatar(data.nym);
-      
-      // Start countdown
-      startCountdown();
-    };
-    
-    const fetchPaynymAvatar = async (nym) => {
-      try {
-        const response = await fetch('/api/paynym/lookup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nym })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          
-          // Get primary payment code for avatar
-          const primaryCode = data.codes && data.codes.length > 0 
-            ? data.codes[0].code 
-            : null;
-          
-          if (primaryCode) {
-            const avatarUrl = `https://paynym.rs/${primaryCode}/avatar`;
-            console.log('🖼️  Avatar URL:', avatarUrl);
+        function startPolling() {
+            let attempts = 0;
+            const maxAttempts = 20; // 10 seconds at 500ms intervals
+            const pollInterval = 500;
             
-            const avatarImg = document.getElementById('avatar');
-            avatarImg.src = avatarUrl;
-            avatarImg.classList.add('show');
-            
-            // Handle avatar load error
-            avatarImg.onerror = () => {
-              console.log('⚠️  Failed to load avatar');
-              avatarImg.classList.remove('show');
+            const poll = async () => {
+                try {
+                    const response = await fetch(`/check-auth/${nonce}`);
+                    const data = await response.json();
+                    
+                    console.log('📊 Auth status:', data);
+                    
+                    if (data.status === 'verified') {
+                        showSuccess(data);
+                        return;
+                    }
+                    
+                    if (data.status === 'invalid') {
+                        showError('Invalid or expired authentication');
+                        return;
+                    }
+                    
+                    // Still pending, continue polling
+                    attempts++;
+                    if (attempts >= maxAttempts) {
+                        showError('Authentication timeout');
+                        return;
+                    }
+                    
+                    setTimeout(poll, pollInterval);
+                    
+                } catch (error) {
+                    console.error('❌ Polling error:', error);
+                    showError('Failed to verify authentication');
+                }
             };
-          }
+            
+            poll();
         }
-      } catch (error) {
-        console.error('❌ Failed to fetch Paynym details:', error);
-      }
-    };
-    
-    const showError = (message) => {
-      console.error('❌ Error:', message);
-      
-      // Hide spinner, show error content
-      document.getElementById('spinner').classList.add('hidden');
-      document.getElementById('status-text').textContent = message;
-      document.getElementById('status-icon').textContent = '❌';
-      document.getElementById('status-text').classList.add('error');
-      
-      const errorContent = document.getElementById('error-content');
-      errorContent.classList.remove('hidden');
-    };
-    
-    const startCountdown = () => {
-      let seconds = COUNTDOWN_SECONDS;
-      const timerElement = document.getElementById('countdown-timer');
-      
-      const countdown = setInterval(() => {
-        seconds--;
-        timerElement.textContent = seconds;
         
-        if (seconds <= 0) {
-          clearInterval(countdown);
-          console.log('🔄 Redirecting to /auth');
-          window.location.href = '/auth';
+        function showSuccess(data) {
+            console.log('✅ Authentication verified:', data);
+            
+            // Hide pending, show success
+            document.getElementById('pending-state').classList.add('hidden');
+            document.getElementById('success-state').classList.remove('hidden');
+            
+            // Display nym name
+            if (data.nym) {
+                document.getElementById('nym-name').textContent = data.nym;
+            }
+            
+            // Display payment code
+            if (data.paymentCode) {
+                document.getElementById('payment-code').textContent = data.paymentCode;
+            }
+            
+            // Fetch and display avatar
+            fetchPaynymAvatar(data.nym);
+            
+            // Start countdown
+            startCountdown();
         }
-      }, 1000);
-    };
-    
-    // Start polling
-    pollAuthStatus();
-  </script>
+        
+        async function fetchPaynymAvatar(nym) {
+            try {
+                const response = await fetch('/api/paynym/lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nym })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Get primary payment code for avatar
+                    const primaryCode = data.codes && data.codes.length > 0 
+                        ? data.codes[0].code 
+                        : null;
+                    
+                    if (primaryCode) {
+                        const avatarUrl = `https://paynym.rs/${primaryCode}/avatar`;
+                        console.log('🖼️  Avatar URL:', avatarUrl);
+                        
+                        const avatarImg = document.getElementById('avatar');
+                        avatarImg.src = avatarUrl;
+                        avatarImg.classList.add('show');
+                        
+                        // Handle avatar load error
+                        avatarImg.onerror = () => {
+                            console.log('⚠️  Failed to load avatar');
+                            avatarImg.classList.remove('show');
+                        };
+                    }
+                    
+                    // Update nym name if we got a better one from API
+                    if (data.nymName) {
+                        document.getElementById('nym-name').textContent = data.nymName;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Failed to fetch Paynym details:', error);
+            }
+        }
+        
+        function showError(message) {
+            console.error('❌ Error:', message);
+            
+            // Hide pending, show error
+            document.getElementById('pending-state').classList.add('hidden');
+            document.getElementById('error-state').classList.remove('hidden');
+            document.getElementById('error-details').textContent = message;
+        }
+        
+        function startCountdown() {
+            let seconds = COUNTDOWN_SECONDS;
+            const timerElement = document.getElementById('countdown-timer');
+            
+            const countdown = setInterval(() => {
+                seconds--;
+                timerElement.textContent = seconds;
+                
+                if (seconds <= 0) {
+                    clearInterval(countdown);
+                    console.log('🔄 Redirecting to /auth');
+                    window.location.href = '/auth';
+                }
+            }, 1000);
+        }
+    </script>
 </body>
 </html>

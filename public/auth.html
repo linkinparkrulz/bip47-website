@@ -32,20 +32,10 @@
     }
     
     .auth-supported-by {
-      text-align: center;
       margin-top: var(--space-sm);
     }
     
-    .auth-supported-heading {
-      font-size: 0.65rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.15em;
-      margin-bottom: var(--space-sm);
-      font-weight: 500;
-    }
-    
-    .auth-logo-grid {
+    .auth-logo-row {
       display: flex;
       justify-content: center;
       align-items: center;
@@ -53,23 +43,69 @@
       flex-wrap: wrap;
     }
     
-    .auth-logo-grid .logo-link {
+    .auth-logo-row .logo-link {
       filter: grayscale(100%);
       opacity: 0.7;
       transition: all var(--transition-normal);
     }
     
-    .auth-logo-grid .logo-link:hover {
+    .auth-logo-row .logo-link:hover {
       filter: grayscale(0%);
       opacity: 1;
       transform: scale(1.1);
     }
     
-    .auth-logo-grid .logo-img {
-      height: 32px;
+    .auth-logo-row .logo-img {
+      height: 40px;
       width: auto;
-      max-width: 100px;
+      max-width: 120px;
       object-fit: contain;
+    }
+    
+    .auth-divider {
+      width: 1px;
+      height: 40px;
+      background: var(--border-default);
+      opacity: 0.5;
+      flex-shrink: 0;
+    }
+    
+    @media (max-width: 600px) {
+      .auth-logo-row {
+        flex-direction: column;
+        gap: var(--space-md);
+      }
+      
+      .auth-divider {
+        display: none;
+      }
+      
+      .auth-section-group {
+        width: 100%;
+      }
+    }
+    
+    .auth-section-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    
+    .auth-section-label {
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      opacity: 0.8;
+    }
+    
+    .auth-section-logos {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: var(--space-lg);
     }
     
     #qrCode {
@@ -262,20 +298,33 @@
           </button>
           
           <div class="auth-supported-by">
-            <div class="auth-supported-heading">Auth47 Supported By</div>
-            <div class="auth-logo-grid">
-              <a href="https://freesamourai.com" target="_blank" rel="noopener noreferrer" class="logo-link" title="Samourai Wallet">
-                <img src="logos/samourai.png" alt="Samourai Wallet" class="logo-img">
-              </a>
-              <a href="https://ashigaru.rs" target="_blank" rel="noopener noreferrer" class="logo-link" title="Ashigaru">
-                <img src="logos/Ashigaru.png" alt="Ashigaru" class="logo-img">
-              </a>
-              <a href="https://sparrowwallet.com" target="_blank" rel="noopener noreferrer" class="logo-link" title="Sparrow Wallet">
-                <img src="logos/sparrow.png" alt="Sparrow Wallet" class="logo-img">
-              </a>
-              <a href="https://thebitcoincompany.com" target="_blank" rel="noopener noreferrer" class="logo-link" title="The Bitcoin Company">
-                <img src="logos/thebitcoincompany.png" alt="The Bitcoin Company" class="logo-img">
-              </a>
+            <div class="auth-logo-row">
+              <div class="auth-section-group">
+                <div class="auth-section-label">Clients</div>
+                <div class="auth-section-logos">
+                  <a href="https://freesamourai.com" target="_blank" rel="noopener noreferrer" class="logo-link" title="Samourai Wallet">
+                    <img src="logos/samourai.png" alt="Samourai Wallet" class="logo-img">
+                  </a>
+                  <a href="https://ashigaru.rs" target="_blank" rel="noopener noreferrer" class="logo-link" title="Ashigaru">
+                    <img src="logos/Ashigaru.png" alt="Ashigaru" class="logo-img">
+                  </a>
+                  <a href="https://sparrowwallet.com" target="_blank" rel="noopener noreferrer" class="logo-link" title="Sparrow Wallet">
+                    <img src="logos/sparrow.png" alt="Sparrow Wallet" class="logo-img">
+                  </a>
+                </div>
+              </div>
+              <span class="auth-divider"></span>
+              <div class="auth-section-group">
+                <div class="auth-section-label">Servers</div>
+                <div class="auth-section-logos">
+                  <a href="https://thebitcoincompany.com" target="_blank" rel="noopener noreferrer" class="logo-link" title="The Bitcoin Company">
+                    <img src="logos/thebitcoincompany.png" alt="The Bitcoin Company" class="logo-img">
+                  </a>
+                  <a href="https://paynym.rs" target="_blank" rel="noopener noreferrer" class="logo-link" title="Paynym.rs">
+                    <img src="logos/paynymdotrs.png" alt="Paynym.rs" class="logo-img">
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
           
