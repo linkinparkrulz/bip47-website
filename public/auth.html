@@ -194,21 +194,22 @@
       padding: var(--space-xl);
       background: var(--bg-primary);
       border-radius: var(--radius-md);
-      border: 1px solid var(--border-default);
+      border: 1px solid var(--accent-success);
       text-align: center;
+      animation: fadeIn 0.5s ease-out;
     }
     
     .result-title {
       font-size: 2.5rem;
-      color: var(--accent-primary);
+      color: var(--accent-success);
       margin-bottom: var(--space-md);
       animation: bounce 0.6s ease-in-out;
     }
     
     @keyframes bounce {
       0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-20px); }
-      60% { transform: translateY(-10px); }
+      40% { transform: translateY(-10px); }
+      60% { transform: translateY(-5px); }
     }
     
     .avatar {
@@ -224,6 +225,7 @@
     
     .avatar.show {
       display: block;
+      animation: fadeIn 0.5s ease-out;
     }
     
     .nym-name { 
@@ -231,6 +233,7 @@
       font-size: 1.4rem; 
       margin: var(--space-md) 0;
       font-weight: 600;
+      font-family: var(--font-display);
     }
     
     .payment-code { 
@@ -251,6 +254,10 @@
       font-size: 1.1rem;
       font-weight: 600;
       margin: var(--space-lg) 0;
+    }
+    
+    .countdown-number {
+      font-family: var(--font-data);
     }
     
     .instructions {
@@ -338,7 +345,7 @@
             <p class="nym-name" id="nym-name"></p>
             <p class="payment-code" id="payment-code"></p>
             <p class="countdown">
-              Resetting in <span id="countdown-timer">10</span> seconds...
+              Resetting in <span id="countdown-timer" class="countdown-number">10</span> seconds...
             </p>
           </div>
         </div>
