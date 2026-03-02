@@ -341,6 +341,27 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.6; }
     }
+
+    /* Mobile: stack Clients/Servers columns, keep logos horizontal */
+    @media (max-width: 600px) {
+      .auth-logo-grid {
+        flex-direction: column;
+        gap: var(--space-lg);
+      }
+      
+      .logo-divider {
+        display: none;
+      }
+      
+      .logo-column {
+        width: 100%;
+      }
+      
+      .logo-column-icons {
+        flex-wrap: nowrap;
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -395,6 +416,10 @@
                 <a href="https://thebitcoincompany.com" target="_blank" rel="noopener noreferrer" class="logo-link" title="The Bitcoin Company">
                   <img src="logos/thebitcoincompany.png" alt="The Bitcoin Company" class="logo-img">
                   <span class="logo-name">The Bitcoin Company</span>
+                </a>
+                <a href="https://paynym.rs" target="_blank" rel="noopener noreferrer" class="logo-link" title="Paynym DOT rs">
+                  <img src="logos/paynymdotrs.png" alt="Paynym DOT rs" class="logo-img">
+                  <span class="logo-name">PayNym.rs</span>
                 </a>
               </div>
             </div>
@@ -497,7 +522,7 @@
         qrDiv.querySelector('img').onclick = () => { window.location.href = data.uri; };
 
         status.className = 'status pending';
-        status.innerHTML = '📱 Waiting for wallet to scan… <div class="spinner"></div>';
+        status.innerHTML = 'Waiting for wallet to scan… <div class="spinner"></div>';
 
         startPolling(data.nonce);
 
@@ -542,7 +567,7 @@
       qrDiv.style.display = 'none';
 
       status.className = 'status success';
-      status.innerHTML = '✅ Authentication Successful!';
+      status.innerHTML = 'Authentication Successful!';
 
       result.style.display = 'block';
 
