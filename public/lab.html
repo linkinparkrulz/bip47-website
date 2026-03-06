@@ -793,7 +793,7 @@
                     </div>
                     
                     <div class="validator-intro">
-                        Verify that a message was signed by the owner of a BIP47 payment code's notification address. This proves ownership of the payment code.
+                        Verify that a message was signed by the owner of a BIP47 payment code's notification address. Paste the entire signed message block - we'll parse it automatically.
                     </div>
 
                     <div class="input-group">
@@ -803,15 +803,32 @@
                     </div>
                     
                     <div class="input-group">
-                        <label>Message</label>
-                        <textarea id="verify-message" rows="3" 
-                                  placeholder="Enter the message that was signed"></textarea>
+                        <label>Signed Message Block</label>
+                        <textarea id="verify-signed-block" rows="10" 
+                                  placeholder="-----BEGIN BITCOIN SIGNED MESSAGE-----
+Your message here
+-----BEGIN BITCOIN SIGNATURE-----
+Version: Bitcoin-qt (1.0)
+Address: ...
+
+Base64SignatureHere...
+-----END BITCOIN SIGNATURE-----"
+                                  style="font-family: monospace; font-size: 0.8rem;"></textarea>
                     </div>
-                    
-                    <div class="input-group">
-                        <label>Signature</label>
-                        <input type="text" id="verify-signature" 
-                               placeholder="Base64-encoded signature">
+
+                    <!-- Parsed Preview -->
+                    <div id="parsed-preview" style="display: none; margin-bottom: var(--space-md);">
+                        <div class="output-label">Parsed from signed message:</div>
+                        <div class="parsed-fields" style="display: grid; gap: var(--space-sm);">
+                            <div class="parsed-item" style="padding: var(--space-sm); background: var(--bg-primary); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-primary);">
+                                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Message</div>
+                                <div id="parsed-message" style="font-size: 0.85rem; color: var(--accent-primary); word-break: break-all; margin-top: 0.25rem;"></div>
+                            </div>
+                            <div class="parsed-item" style="padding: var(--space-sm); background: var(--bg-primary); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-primary);">
+                                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Signature</div>
+                                <div id="parsed-signature" style="font-size: 0.8rem; color: var(--accent-primary); font-family: monospace; word-break: break-all; margin-top: 0.25rem;"></div>
+                            </div>
+                        </div>
                     </div>
                     
                     <button id="verify-btn" onclick="verifyMessage()">
@@ -1383,11 +1400,113 @@
             console.log('✅ Scenario reset to step 1');
         }
 
+        // Parse Bitcoin signed message format
+        function parseSignedMessageBlock(block) {
+            if (!block || !block.trim()) {
+                return { message: '', signature: '', error: 'Empty signed message block' };
+            }
+
+            // Standard Bitcoin signed message format:
+            // -----BEGIN BITCOIN SIGNED MESSAGE-----
+            // <message content>
+            // -----BEGIN BITCOIN SIGNATURE-----
+            // Version: ...
+            // Address: ...
+            // <blank line>
+            // <base64 signature>
+            // -----END BITCOIN SIGNATURE-----
+
+            const beginMsgMarker = '-----BEGIN BITCOIN SIGNED MESSAGE-----';
+            const beginSigMarker = '-----BEGIN BITCOIN SIGNATURE-----';
+            const endSigMarker = '-----END BITCOIN SIGNATURE-----';
+
+            const blockUpper = block.toUpperCase();
+
+            // Check if this is a signed message block format
+            if (!blockUpper.includes(beginMsgMarker.toUpperCase()) || 
+                !blockUpper.includes(beginSigMarker.toUpperCase())) {
+                // Not a signed block - return as-is (might be legacy format with separate fields)
+                return { message: block, signature: '', error: null };
+            }
+
+            try {
+                // Find the message content between BEGIN SIGNED MESSAGE and BEGIN SIGNATURE
+                const msgStartIdx = block.toUpperCase().indexOf(beginMsgMarker.toUpperCase());
+                const sigStartIdx = block.toUpperCase().indexOf(beginSigMarker.toUpperCase());
+                
+                if (msgStartIdx === -1 || sigStartIdx === -1) {
+                    return { message: '', signature: '', error: 'Invalid signed message format' };
+                }
+
+                // Extract message (between the markers, trimming the marker text)
+                const msgContentStart = msgStartIdx + beginMsgMarker.length;
+                const message = block.substring(msgContentStart, sigStartIdx).trim();
+
+                // Find signature section
+                const sigContentStart = sigStartIdx + beginSigMarker.length;
+                const endSigIdx = block.toUpperCase().indexOf(endSigMarker.toUpperCase(), sigContentStart);
+                
+                if (endSigIdx === -1) {
+                    return { message: '', signature: '', error: 'Missing END BITCOIN SIGNATURE marker' };
+                }
+
+                const sigSection = block.substring(sigContentStart, endSigIdx);
+
+                // Parse the signature section - signature is typically the last non-empty line
+                // after "Version:" and "Address:" lines
+                const lines = sigSection.split('\n');
+                let signature = '';
+                let foundEmptyLine = false;
+
+                for (let i = lines.length - 1; i >= 0; i--) {
+                    const line = lines[i].trim();
+                    if (line === '') {
+                        foundEmptyLine = true;
+                        continue;
+                    }
+                    // Signature is the first non-empty line we encounter going backwards
+                    // after we've seen at least one empty line (or if there's no empty line, just take the last line)
+                    if (foundEmptyLine || signature === '') {
+                        // Check it's not a header line
+                        if (!line.toLowerCase().startsWith('version:') && 
+                            !line.toLowerCase().startsWith('address:')) {
+                            signature = line;
+                            break;
+                        }
+                    }
+                }
+
+                if (!signature) {
+                    return { message, signature: '', error: 'Could not find signature in block' };
+                }
+
+                return { message, signature, error: null };
+
+            } catch (e) {
+                console.error('Parse error:', e);
+                return { message: '', signature: '', error: 'Failed to parse signed message block' };
+            }
+        }
+
+        // Update parsed preview when user types
+        document.getElementById('verify-signed-block').addEventListener('input', function() {
+            const block = this.value;
+            const previewDiv = document.getElementById('parsed-preview');
+            const parsed = parseSignedMessageBlock(block);
+
+            if (parsed.message || parsed.signature) {
+                previewDiv.style.display = 'block';
+                document.getElementById('parsed-message').textContent = parsed.message || '(none)';
+                document.getElementById('parsed-signature').textContent = parsed.signature || '(none)';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        });
+
         // BIP47 Message Verifier
         async function verifyMessage() {
             const paymentCode = document.getElementById('verify-pcode').value.trim();
-            const message = document.getElementById('verify-message').value;
-            const signature = document.getElementById('verify-signature').value.trim();
+            const signedBlock = document.getElementById('verify-signed-block').value;
             const outputDiv = document.getElementById('verify-output');
             const errorDiv = document.getElementById('verify-error');
             const btn = document.getElementById('verify-btn');
@@ -1402,17 +1521,38 @@
                 return;
             }
 
+            if (!signedBlock || !signedBlock.trim()) {
+                errorDiv.textContent = '❌ Signed message block required';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Parse the signed message block
+            const parsed = parseSignedMessageBlock(signedBlock);
+
+            if (parsed.error) {
+                errorDiv.textContent = `❌ ${parsed.error}`;
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const message = parsed.message;
+            const signature = parsed.signature;
+
             if (!message) {
-                errorDiv.textContent = '❌ Message required';
+                errorDiv.textContent = '❌ Could not extract message from signed block';
                 errorDiv.style.display = 'block';
                 return;
             }
 
             if (!signature) {
-                errorDiv.textContent = '❌ Signature required';
+                errorDiv.textContent = '❌ Could not extract signature from signed block';
                 errorDiv.style.display = 'block';
                 return;
             }
+
+            console.log('📋 Parsed message:', message.substring(0, 50) + '...');
+            console.log('📋 Parsed signature:', signature.substring(0, 30) + '...');
 
             // Show loading state
             btn.disabled = true;
