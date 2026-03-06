@@ -5,7 +5,9 @@ import { MongoClient } from 'mongodb';
 import ecc from '@bitcoinerlab/secp256k1';
 import { BIP32Factory } from 'bip32';
 import { BIP47Factory } from '@samouraiwallet/bip47';
+import { networks } from '@samouraiwallet/bip47/utils';
 import { Auth47Verifier } from '@samouraiwallet/auth47';
+import { bitcoinMessageFactory } from '@samouraiwallet/bitcoinjs-message';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
 import path from 'path';
@@ -50,6 +52,7 @@ app.use(express.static('public'));
 // Initialize BIP32 and BIP47 with ECC
 const bip32 = BIP32Factory(ecc);
 const bip47 = BIP47Factory(ecc);
+const bitcoinjsMessage = bitcoinMessageFactory(ecc);
 
 // Dynamic callback URL for production deployment
 const CALLBACK_URL = process.env.CALLBACK_URL || `http://localhost:${PORT}/callback`;
@@ -536,6 +539,97 @@ app.post('/api/bip47/validate', (req, res) => {
   } catch (error) {
     console.error('💥 Validation error:', error);
     res.status(500).json({ error: 'Validation failed: ' + error.message });
+  }
+});
+
+// BIP47 Message Verifier - Verify message signed with notification address
+app.post('/api/bip47/verify-message', async (req, res) => {
+  try {
+    const { paymentCode, message, signature } = req.body;
+
+    if (!paymentCode || !message || !signature) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: paymentCode, message, signature' 
+      });
+    }
+
+    console.log(`🔍 Verifying message for payment code: ${paymentCode.substring(0, 20)}...`);
+
+    // Parse the payment code
+    let paynym;
+    try {
+      paynym = bip47.fromBase58(paymentCode);
+    } catch (e) {
+      console.error('❌ Invalid payment code:', e.message);
+      return res.status(400).json({ 
+        valid: false,
+        error: 'Invalid payment code format' 
+      });
+    }
+
+    // Get the notification address from the payment code
+    const notificationAddress = paynym.getNotificationAddress();
+    console.log(`📧 Notification address: ${notificationAddress}`);
+
+    // Verify the signature
+    let isValid;
+    try {
+      isValid = bitcoinjsMessage.verify(
+        message, 
+        notificationAddress, 
+        signature, 
+        networks.bitcoin.messagePrefix
+      );
+    } catch (e) {
+      console.error('❌ Signature verification error:', e.message);
+      return res.json({
+        valid: false,
+        error: 'Invalid signature format',
+        notificationAddress
+      });
+    }
+
+    // Try to fetch Paynym details for additional info
+    let nymName = null;
+    let avatarUrl = null;
+    try {
+      const paynymResponse = await fetch('https://paynym.rs/api/v1/nym/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nym: paymentCode })
+      });
+
+      if (paynymResponse.ok) {
+        const paynymData = await paynymResponse.json();
+        nymName = paynymData.nymName || null;
+        const primaryCode = paynymData.codes && paynymData.codes.length > 0 
+          ? paynymData.codes[0].code 
+          : null;
+        if (primaryCode) {
+          avatarUrl = `https://paynym.rs/${primaryCode}/avatar`;
+        }
+      }
+    } catch (fetchError) {
+      // Continue without Paynym details
+      console.log('⚠️  Could not fetch Paynym details:', fetchError.message);
+    }
+
+    console.log(`${isValid ? '✅' : '❌'} Message verification ${isValid ? 'successful' : 'failed'}`);
+
+    res.json({
+      valid: isValid,
+      notificationAddress,
+      nymName,
+      avatarUrl,
+      paymentCode
+    });
+
+  } catch (error) {
+    console.error('💥 Message verification error:', error);
+    res.status(500).json({ 
+      valid: false,
+      error: 'Verification failed: ' + error.message 
+    });
   }
 });
 

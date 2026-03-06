@@ -785,6 +785,54 @@
                     </div>
                 </div>
 
+                <!-- BIP47 Message Verifier -->
+                <div class="tool-panel scenario-panel" style="margin-top: 1.5rem;">
+                    <div class="tool-header">
+                        <span class="tool-icon">🔐</span>
+                        <span class="tool-title">BIP47 Message Verifier</span>
+                    </div>
+                    
+                    <div class="validator-intro">
+                        Verify that a message was signed by the owner of a BIP47 payment code's notification address. This proves ownership of the payment code.
+                    </div>
+
+                    <div class="input-group">
+                        <label>Payment Code</label>
+                        <input type="text" id="verify-pcode" 
+                               placeholder="PM8TJYp8zHvhimVNRjUcEuULfmvmUML6YTbTSnU69MYy93AzsXELFLaVjpxc5mxDex7R8ttgtL1tGAt2TshZAoFeB5zn4c9nRo4oZpmuyuo4FTpUrd">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Message</label>
+                        <textarea id="verify-message" rows="3" 
+                                  placeholder="Enter the message that was signed"></textarea>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Signature</label>
+                        <input type="text" id="verify-signature" 
+                               placeholder="Base64-encoded signature">
+                    </div>
+                    
+                    <button id="verify-btn" onclick="verifyMessage()">
+                        VERIFY MESSAGE
+                    </button>
+
+                    <div id="verify-error" class="error-message" style="display: none;"></div>
+
+                    <!-- Verification Results -->
+                    <div id="verify-output" style="display: none; margin-top: var(--space-lg);">
+                        <!-- Verification Status -->
+                        <div id="verify-status" class="validation-status"></div>
+                        
+                        <!-- Signer Info -->
+                        <div id="signer-info" style="margin-top: var(--space-lg);">
+                            <div class="section-title">👤 Signer Information</div>
+                            <div id="signer-details" class="derived-grid"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Enhanced Payment Code Validator - Full Width -->
                 <div class="tool-panel scenario-panel" style="margin-top: 1.5rem; margin-bottom: var(--space-xl);">
                     <div class="tool-header">
@@ -1333,6 +1381,107 @@
             });
             document.querySelector('.progress-dot[data-step="1"]').classList.add('active');
             console.log('✅ Scenario reset to step 1');
+        }
+
+        // BIP47 Message Verifier
+        async function verifyMessage() {
+            const paymentCode = document.getElementById('verify-pcode').value.trim();
+            const message = document.getElementById('verify-message').value;
+            const signature = document.getElementById('verify-signature').value.trim();
+            const outputDiv = document.getElementById('verify-output');
+            const errorDiv = document.getElementById('verify-error');
+            const btn = document.getElementById('verify-btn');
+
+            // Hide previous results
+            outputDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+
+            if (!paymentCode) {
+                errorDiv.textContent = '❌ Payment code required';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!message) {
+                errorDiv.textContent = '❌ Message required';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!signature) {
+                errorDiv.textContent = '❌ Signature required';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>VERIFYING...';
+
+            try {
+                console.log('🔍 Verifying message signature...');
+                const data = await apiPost('/api/bip47/verify-message', { 
+                    paymentCode, 
+                    message, 
+                    signature 
+                });
+
+                // Display results
+                const statusDiv = document.getElementById('verify-status');
+                if (data.valid) {
+                    statusDiv.className = 'validation-status valid';
+                    statusDiv.innerHTML = '✅ MESSAGE VERIFIED<br><span style="font-size: 0.85rem; font-weight: normal;">Signature is valid for this payment code</span>';
+                } else {
+                    statusDiv.className = 'validation-status invalid';
+                    statusDiv.innerHTML = '❌ VERIFICATION FAILED<br><span style="font-size: 0.85rem; font-weight: normal;">Signature does not match</span>';
+                }
+
+                // Display signer info
+                const signerDetails = document.getElementById('signer-details');
+                signerDetails.innerHTML = '';
+
+                const infoItems = [
+                    { label: 'Notification Address', value: data.notificationAddress || 'N/A' },
+                    { label: 'PayNym Name', value: data.nymName || 'Unknown' },
+                    { label: 'Payment Code', value: paymentCode.substring(0, 30) + '...' }
+                ];
+
+                // Add avatar if available
+                if (data.avatarUrl) {
+                    const avatarItem = document.createElement('div');
+                    avatarItem.className = 'derived-item';
+                    avatarItem.innerHTML = `
+                        <div class="derived-label">PayNym Avatar</div>
+                        <div class="derived-value" style="text-align: center;">
+                            <img src="${data.avatarUrl}" alt="PayNym Avatar" 
+                                 style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--accent-primary);"
+                                 onerror="this.style.display='none'">
+                        </div>
+                    `;
+                    signerDetails.appendChild(avatarItem);
+                }
+
+                infoItems.forEach(info => {
+                    const item = document.createElement('div');
+                    item.className = 'derived-item';
+                    item.innerHTML = `
+                        <div class="derived-label">${info.label}</div>
+                        <div class="derived-value">${info.value}</div>
+                    `;
+                    signerDetails.appendChild(item);
+                });
+
+                outputDiv.style.display = 'block';
+                console.log(`✅ Verification complete: ${data.valid ? 'VALID' : 'INVALID'}`);
+
+            } catch (error) {
+                console.error('💥 Verification error:', error);
+                errorDiv.textContent = `❌ ${error.message}`;
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'VERIFY MESSAGE';
+            }
         }
     </script>
 </body>
