@@ -526,14 +526,36 @@
   </div>
 
   <script>
+    // Detect if input is a nymName (rather than a payment code)
+    function isNymName(input) {
+      const trimmed = input.trim();
+      // Payment codes start with 'PM8T' and are ~116 characters
+      if (trimmed.startsWith('PM8T') && trimmed.length > 80) {
+        return false; // Looks like a payment code
+      }
+      // NymNames: start with + or are short alphanumeric strings
+      if (trimmed.startsWith('+')) return true;
+      // Also accept nymNames without the + prefix
+      if (/^[a-zA-Z0-9]+$/.test(trimmed) && trimmed.length < 50 && !trimmed.startsWith('PM')) {
+        return true;
+      }
+      return false;
+    }
+
     async function searchPaynym() {
       const input = document.getElementById('searchInput');
       const btn = document.getElementById('searchBtn');
       const resultsContainer = document.getElementById('resultsContainer');
       const emptyState = document.getElementById('emptyState');
       
-      const query = input.value.trim();
+      let query = input.value.trim();
       if (!query) return;
+      
+      // Normalize nymName: ensure + prefix for API
+      if (isNymName(query) && !query.startsWith('+')) {
+        query = '+' + query;
+        console.log(`🔍 Normalized nymName: ${input.value.trim()} → ${query}`);
+      }
       
       // Show loading state
       btn.disabled = true;

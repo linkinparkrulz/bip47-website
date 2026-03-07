@@ -958,6 +958,101 @@ https://paynym.rs/{payment_code}/avatar
 // Example
 https://paynym.rs/PM8TJYp8zHvhimVNRjUcEuULfmvmUML6YTbTSnU69MYy93AzsXELFLaVjpxc5mxDex7R8ttgtL1tGAt2TshZAoFeB5zn4c9nRo4oZpmuyuo4FTpUrd/avatar</code></pre>
                 </div>
+
+                <h3>Verify BIP47 Message</h3>
+                <p>
+                    Verify that a message was signed by the owner of a BIP47 payment code's notification address. 
+                    This is useful for proving ownership of a payment code without revealing private keys.
+                </p>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="lang">JavaScript</span>
+                    </div>
+                    <pre><code>import ecc from '@bitcoinerlab/secp256k1';
+import { BIP47Factory } from '@samouraiwallet/bip47';
+import { networks } from '@samouraiwallet/bip47/utils';
+import { bitcoinMessageFactory } from '@samouraiwallet/bitcoinjs-message';
+
+const bip47 = BIP47Factory(ecc);
+const bitcoinjsMessage = bitcoinMessageFactory(ecc);
+
+// Parse the payment code
+const paymentCode = 'PM8TJYp8zHvhimVNRjUcEuULfmvmUML6YTbTSnU69MYy...';
+const paynym = bip47.fromBase58(paymentCode);
+
+// Get the notification address
+const notificationAddress = paynym.getNotificationAddress();
+
+// Verify the signature
+const message = 'Hello, BIP47!';
+const signature = 'H9...base64-signature...';
+
+const isValid = bitcoinjsMessage.verify(
+  message,
+  notificationAddress,
+  signature,
+  networks.bitcoin.messagePrefix
+);
+
+console.log(isValid ? '✅ Signature verified!' : '❌ Invalid signature');</code></pre>
+                </div>
+
+                <div class="info-box">
+                    <p>
+                        <strong>Try it:</strong> Test message verification on the 
+                        <a href="/lab" style="color: var(--accent-secondary);">BIP47 Lab</a> 
+                        page using the Message Verifier tool.
+                    </p>
+                </div>
+
+                <h4>API Endpoint</h4>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="http-method http-post">POST</span>
+                        <span class="endpoint-path">/api/bip47/verify-message</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <p>Verify a message signed with a BIP47 notification address.</p>
+                        <table class="param-table">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>paymentCode</code></td>
+                                    <td>string</td>
+                                    <td>BIP47 payment code (Base58 format)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>message</code></td>
+                                    <td>string</td>
+                                    <td>The original message that was signed</td>
+                                </tr>
+                                <tr>
+                                    <td><code>signature</code></td>
+                                    <td>string</td>
+                                    <td>Base64-encoded signature</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="lang">Response</span>
+                            </div>
+                            <pre><code>{
+  "valid": true,
+  "notificationAddress": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+  "nymName": "example",
+  "avatarUrl": "https://paynym.rs/PM8T.../avatar"
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- Resources -->

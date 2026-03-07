@@ -785,10 +785,75 @@
                     </div>
                 </div>
 
+                <!-- BIP47 Message Verifier -->
+                <div class="tool-panel scenario-panel" style="margin-top: 1.5rem;">
+                    <div class="tool-header">
+                        <span class="tool-icon">✉️</span>
+                        <span class="tool-title">BIP47 Message Verifier</span>
+                    </div>
+                    
+                    <div class="validator-intro">
+                        Verify that a message was signed by the owner of a BIP47 payment code's notification address. Paste the entire signed message block - we'll parse it automatically.
+                    </div>
+
+                    <div class="input-group">
+                        <label>Payment Code or NymName</label>
+                        <input type="text" id="verify-pcode" 
+                               placeholder="PM8TJ... or +mundanepunch78 or mundanepunch78">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Signed Message Block</label>
+                        <textarea id="verify-signed-block" rows="10" 
+                                  placeholder="-----BEGIN BITCOIN SIGNED MESSAGE-----
+Your message here
+-----BEGIN BITCOIN SIGNATURE-----
+Version: Bitcoin-qt (1.0)
+Address: ...
+
+Base64SignatureHere...
+-----END BITCOIN SIGNATURE-----"
+                                  style="font-family: monospace; font-size: 0.8rem;"></textarea>
+                    </div>
+
+                    <!-- Parsed Preview -->
+                    <div id="parsed-preview" style="display: none; margin-bottom: var(--space-md);">
+                        <div class="output-label">Parsed from signed message:</div>
+                        <div class="parsed-fields" style="display: grid; gap: var(--space-sm);">
+                            <div class="parsed-item" style="padding: var(--space-sm); background: var(--bg-primary); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-primary);">
+                                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Message</div>
+                                <div id="parsed-message" style="font-size: 0.85rem; color: var(--accent-primary); word-break: break-all; margin-top: 0.25rem;"></div>
+                            </div>
+                            <div class="parsed-item" style="padding: var(--space-sm); background: var(--bg-primary); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-primary);">
+                                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Signature</div>
+                                <div id="parsed-signature" style="font-size: 0.8rem; color: var(--accent-primary); font-family: monospace; word-break: break-all; margin-top: 0.25rem;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="verify-btn" onclick="verifyMessage()">
+                        VERIFY MESSAGE
+                    </button>
+
+                    <div id="verify-error" class="error-message" style="display: none;"></div>
+
+                    <!-- Verification Results -->
+                    <div id="verify-output" style="display: none; margin-top: var(--space-lg);">
+                        <!-- Verification Status -->
+                        <div id="verify-status" class="validation-status"></div>
+                        
+                        <!-- Signer Info -->
+                        <div id="signer-info" style="margin-top: var(--space-lg);">
+                            <div class="section-title">👤 Signer Information</div>
+                            <div id="signer-details" class="derived-grid"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Enhanced Payment Code Validator - Full Width -->
                 <div class="tool-panel scenario-panel" style="margin-top: 1.5rem; margin-bottom: var(--space-xl);">
                     <div class="tool-header">
-                        <span class="tool-icon">🔬</span>
+                        <span class="tool-icon">🔍</span>
                         <span class="tool-title">Payment Code Validator & Analyzer</span>
                     </div>
                     
@@ -1333,6 +1398,319 @@
             });
             document.querySelector('.progress-dot[data-step="1"]').classList.add('active');
             console.log('✅ Scenario reset to step 1');
+        }
+
+        // Detect if input is a nymName (rather than a payment code)
+        function isNymName(input) {
+            // Payment codes start with 'PM8T' and are ~116 characters
+            // NymNames start with '+' or are short strings
+            const trimmed = input.trim();
+            if (trimmed.startsWith('PM8T') && trimmed.length > 80) {
+                return false; // Looks like a payment code
+            }
+            // NymNames: start with + or are short alphanumeric strings
+            if (trimmed.startsWith('+')) return true;
+            // Also accept nymNames without the + prefix
+            if (/^[a-zA-Z0-9]+$/.test(trimmed) && trimmed.length < 50 && !trimmed.startsWith('PM')) {
+                return true;
+            }
+            return false;
+        }
+
+        // Resolve nymName to payment code via Paynym API
+        async function resolveNymName(nymInput) {
+            // Normalize: ensure + prefix for API
+            const nymId = nymInput.startsWith('+') ? nymInput : '+' + nymInput;
+            console.log(`🔍 Resolving nymName: ${nymId}`);
+            
+            try {
+                const data = await apiPost('/api/paynym/lookup', { nym: nymId });
+                // Paynym API returns payment codes in a 'codes' array
+                const primaryCode = data.codes && data.codes.length > 0 ? data.codes[0].code : null;
+                
+                if (primaryCode) {
+                    console.log(`✅ Resolved to payment code: ${primaryCode.substring(0, 20)}...`);
+                    return {
+                        paymentCode: primaryCode,
+                        nymName: data.nymName || nymId,
+                        avatarUrl: `https://paynym.rs/${primaryCode}/avatar`
+                    };
+                }
+                throw new Error('Payment code not found in response');
+            } catch (error) {
+                console.error('💥 Failed to resolve nymName:', error);
+                throw new Error(`Could not find Paynym: ${nymId}`);
+            }
+        }
+
+        // Parse Bitcoin signed message format
+        function parseSignedMessageBlock(block) {
+            if (!block || !block.trim()) {
+                return { message: '', signature: '', error: 'Empty signed message block' };
+            }
+
+            // Standard Bitcoin signed message format:
+            // -----BEGIN BITCOIN SIGNED MESSAGE-----
+            // <message content>
+            // -----BEGIN BITCOIN SIGNATURE-----
+            // Version: ...
+            // Address: ...
+            // <blank line>
+            // <base64 signature>
+            // -----END BITCOIN SIGNATURE-----
+
+            const beginMsgMarker = '-----BEGIN BITCOIN SIGNED MESSAGE-----';
+            const beginSigMarker = '-----BEGIN BITCOIN SIGNATURE-----';
+            const endSigMarker = '-----END BITCOIN SIGNATURE-----';
+
+            const blockUpper = block.toUpperCase();
+
+            // Check if this is a signed message block format
+            if (!blockUpper.includes(beginMsgMarker.toUpperCase()) || 
+                !blockUpper.includes(beginSigMarker.toUpperCase())) {
+                // Not a signed block - return as-is (might be legacy format with separate fields)
+                return { message: block, signature: '', error: null };
+            }
+
+            try {
+                // Find the message content between BEGIN SIGNED MESSAGE and BEGIN SIGNATURE
+                const msgStartIdx = block.toUpperCase().indexOf(beginMsgMarker.toUpperCase());
+                const sigStartIdx = block.toUpperCase().indexOf(beginSigMarker.toUpperCase());
+                
+                if (msgStartIdx === -1 || sigStartIdx === -1) {
+                    return { message: '', signature: '', error: 'Invalid signed message format' };
+                }
+
+                // Extract message (between the markers, trimming the marker text)
+                const msgContentStart = msgStartIdx + beginMsgMarker.length;
+                const message = block.substring(msgContentStart, sigStartIdx).trim();
+
+                // Find signature section
+                const sigContentStart = sigStartIdx + beginSigMarker.length;
+                const endSigIdx = block.toUpperCase().indexOf(endSigMarker.toUpperCase(), sigContentStart);
+                
+                if (endSigIdx === -1) {
+                    return { message: '', signature: '', error: 'Missing END BITCOIN SIGNATURE marker' };
+                }
+
+                const sigSection = block.substring(sigContentStart, endSigIdx);
+
+                // Parse the signature section - signature is typically the last non-empty line
+                // after "Version:" and "Address:" lines
+                const lines = sigSection.split('\n');
+                let signature = '';
+                let foundEmptyLine = false;
+
+                for (let i = lines.length - 1; i >= 0; i--) {
+                    const line = lines[i].trim();
+                    if (line === '') {
+                        foundEmptyLine = true;
+                        continue;
+                    }
+                    // Signature is the first non-empty line we encounter going backwards
+                    // after we've seen at least one empty line (or if there's no empty line, just take the last line)
+                    if (foundEmptyLine || signature === '') {
+                        // Check it's not a header line
+                        if (!line.toLowerCase().startsWith('version:') && 
+                            !line.toLowerCase().startsWith('address:')) {
+                            signature = line;
+                            break;
+                        }
+                    }
+                }
+
+                if (!signature) {
+                    return { message, signature: '', error: 'Could not find signature in block' };
+                }
+
+                return { message, signature, error: null };
+
+            } catch (e) {
+                console.error('Parse error:', e);
+                return { message: '', signature: '', error: 'Failed to parse signed message block' };
+            }
+        }
+
+        // Update parsed preview when user types
+        document.getElementById('verify-signed-block').addEventListener('input', function() {
+            const block = this.value;
+            const previewDiv = document.getElementById('parsed-preview');
+            const parsed = parseSignedMessageBlock(block);
+
+            if (parsed.message || parsed.signature) {
+                previewDiv.style.display = 'block';
+                document.getElementById('parsed-message').textContent = parsed.message || '(none)';
+                document.getElementById('parsed-signature').textContent = parsed.signature || '(none)';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        });
+
+        // BIP47 Message Verifier
+        async function verifyMessage() {
+            let paymentCodeInput = document.getElementById('verify-pcode').value.trim();
+            const signedBlock = document.getElementById('verify-signed-block').value;
+            const outputDiv = document.getElementById('verify-output');
+            const errorDiv = document.getElementById('verify-error');
+            const btn = document.getElementById('verify-btn');
+            const previewDiv = document.getElementById('parsed-preview');
+
+            // Hide previous results
+            outputDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+
+            if (!paymentCodeInput) {
+                errorDiv.textContent = '❌ Payment code or NymName required';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!signedBlock || !signedBlock.trim()) {
+                errorDiv.textContent = '❌ Signed message block required';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Parse the signed message block
+            const parsed = parseSignedMessageBlock(signedBlock);
+
+            if (parsed.error) {
+                errorDiv.textContent = `❌ ${parsed.error}`;
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const message = parsed.message;
+            const signature = parsed.signature;
+
+            if (!message) {
+                errorDiv.textContent = '❌ Could not extract message from signed block';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!signature) {
+                errorDiv.textContent = '❌ Could not extract signature from signed block';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            console.log('📋 Parsed message:', message.substring(0, 50) + '...');
+            console.log('📋 Parsed signature:', signature.substring(0, 30) + '...');
+
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>VERIFYING...';
+
+            let resolvedNymName = null;
+            let resolvedAvatarUrl = null;
+
+            try {
+                // Check if input is a nymName and resolve it
+                let paymentCode = paymentCodeInput;
+                
+                if (isNymName(paymentCodeInput)) {
+                    console.log('🔍 Detected nymName, resolving...');
+                    btn.innerHTML = '<span class="loading"></span>RESOLVING NYMNAME...';
+                    
+                    try {
+                        const resolved = await resolveNymName(paymentCodeInput);
+                        paymentCode = resolved.paymentCode;
+                        resolvedNymName = resolved.nymName;
+                        resolvedAvatarUrl = resolved.avatarUrl;
+                        
+                        console.log(`✅ Resolved ${paymentCodeInput} → ${paymentCode.substring(0, 20)}...`);
+                        
+                        // Update preview to show resolved payment code
+                        const existingPreview = document.getElementById('resolved-pcode-preview');
+                        if (existingPreview) {
+                            existingPreview.remove();
+                        }
+                        
+                        const resolvedDiv = document.createElement('div');
+                        resolvedDiv.id = 'resolved-pcode-preview';
+                        resolvedDiv.className = 'parsed-item';
+                        resolvedDiv.style.cssText = 'padding: var(--space-sm); background: var(--bg-primary); border-radius: var(--radius-sm); border-left: 3px solid #66b2ff; margin-bottom: var(--space-sm);';
+                        resolvedDiv.innerHTML = `
+                            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Resolved from ${paymentCodeInput.startsWith('+') ? paymentCodeInput : '+' + paymentCodeInput}</div>
+                            <div style="font-size: 0.75rem; color: #66b2ff; font-family: monospace; word-break: break-all; margin-top: 0.25rem;">${paymentCode.substring(0, 40)}...</div>
+                        `;
+                        previewDiv.insertBefore(resolvedDiv, previewDiv.firstChild);
+                        
+                        btn.innerHTML = '<span class="loading"></span>VERIFYING...';
+                    } catch (resolveError) {
+                        console.error('💥 Failed to resolve nymName:', resolveError);
+                        throw new Error(`Could not resolve "${paymentCodeInput}": ${resolveError.message}`);
+                    }
+                }
+
+                console.log('🔍 Verifying message signature...');
+                const data = await apiPost('/api/bip47/verify-message', { 
+                    paymentCode, 
+                    message, 
+                    signature 
+                });
+
+                // Display results
+                const statusDiv = document.getElementById('verify-status');
+                if (data.valid) {
+                    statusDiv.className = 'validation-status valid';
+                    statusDiv.innerHTML = 'MESSAGE VERIFIED<br><span style="font-size: 0.85rem; font-weight: normal;">Signature is valid for this payment code</span>';
+                } else {
+                    statusDiv.className = 'validation-status invalid';
+                    statusDiv.innerHTML = '❌ VERIFICATION FAILED<br><span style="font-size: 0.85rem; font-weight: normal;">Signature does not match</span>';
+                }
+
+                // Display signer info
+                const signerDetails = document.getElementById('signer-details');
+                signerDetails.innerHTML = '';
+
+                // Use resolved nymName if available, otherwise from API response
+                const displayName = resolvedNymName || data.nymName || 'Unknown';
+                const displayAvatar = resolvedAvatarUrl || data.avatarUrl;
+
+                const infoItems = [
+                    { label: 'Notification Address', value: data.notificationAddress || 'N/A' },
+                    { label: 'PayNym Name', value: displayName },
+                    { label: 'Payment Code', value: paymentCode }
+                ];
+
+                // Add avatar if available
+                if (displayAvatar) {
+                    const avatarItem = document.createElement('div');
+                    avatarItem.className = 'derived-item';
+                    avatarItem.innerHTML = `
+                        <div class="derived-label">PayNym Avatar</div>
+                        <div class="derived-value" style="text-align: center;">
+                            <img src="${displayAvatar}" alt="PayNym Avatar" 
+                                 style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--accent-primary);"
+                                 onerror="this.style.display='none'">
+                        </div>
+                    `;
+                    signerDetails.appendChild(avatarItem);
+                }
+
+                infoItems.forEach(info => {
+                    const item = document.createElement('div');
+                    item.className = 'derived-item';
+                    item.innerHTML = `
+                        <div class="derived-label">${info.label}</div>
+                        <div class="derived-value">${info.value}</div>
+                    `;
+                    signerDetails.appendChild(item);
+                });
+
+                outputDiv.style.display = 'block';
+                console.log(`Verification complete: ${data.valid ? 'VALID' : 'INVALID'}`);
+
+            } catch (error) {
+                console.error('Verification error:', error);
+                errorDiv.textContent = `❌ ${error.message}`;
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'VERIFY MESSAGE';
+            }
         }
     </script>
 </body>
