@@ -1425,12 +1425,15 @@ Base64SignatureHere...
             
             try {
                 const data = await apiPost('/api/paynym/lookup', { nym: nymId });
-                if (data && data.code) {
-                    console.log(`✅ Resolved to payment code: ${data.code.substring(0, 20)}...`);
+                // Paynym API returns payment codes in a 'codes' array
+                const primaryCode = data.codes && data.codes.length > 0 ? data.codes[0].code : null;
+                
+                if (primaryCode) {
+                    console.log(`✅ Resolved to payment code: ${primaryCode.substring(0, 20)}...`);
                     return {
-                        paymentCode: data.code,
+                        paymentCode: primaryCode,
                         nymName: data.nymName || nymId,
-                        avatarUrl: data.avatarUrl || null
+                        avatarUrl: `https://paynym.rs/${primaryCode}/avatar`
                     };
                 }
                 throw new Error('Payment code not found in response');
