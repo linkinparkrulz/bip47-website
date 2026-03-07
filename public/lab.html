@@ -797,9 +797,9 @@
                     </div>
 
                     <div class="input-group">
-                        <label>Payment Code</label>
+                        <label>Payment Code or NymName</label>
                         <input type="text" id="verify-pcode" 
-                               placeholder="PM8TJYp8zHvhimVNRjUcEuULfmvmUML6YTbTSnU69MYy93AzsXELFLaVjpxc5mxDex7R8ttgtL1tGAt2TshZAoFeB5zn4c9nRo4oZpmuyuo4FTpUrd">
+                               placeholder="PM8TJ... or +mundanepunch78 or mundanepunch78">
                     </div>
                     
                     <div class="input-group">
@@ -1400,6 +1400,46 @@ Base64SignatureHere...
             console.log('✅ Scenario reset to step 1');
         }
 
+        // Detect if input is a nymName (rather than a payment code)
+        function isNymName(input) {
+            // Payment codes start with 'PM8T' and are ~116 characters
+            // NymNames start with '+' or are short strings
+            const trimmed = input.trim();
+            if (trimmed.startsWith('PM8T') && trimmed.length > 80) {
+                return false; // Looks like a payment code
+            }
+            // NymNames: start with + or are short alphanumeric strings
+            if (trimmed.startsWith('+')) return true;
+            // Also accept nymNames without the + prefix
+            if (/^[a-zA-Z0-9]+$/.test(trimmed) && trimmed.length < 50 && !trimmed.startsWith('PM')) {
+                return true;
+            }
+            return false;
+        }
+
+        // Resolve nymName to payment code via Paynym API
+        async function resolveNymName(nymInput) {
+            // Normalize: ensure + prefix for API
+            const nymId = nymInput.startsWith('+') ? nymInput : '+' + nymInput;
+            console.log(`🔍 Resolving nymName: ${nymId}`);
+            
+            try {
+                const data = await apiPost('/api/paynym/lookup', { nym: nymId });
+                if (data && data.code) {
+                    console.log(`✅ Resolved to payment code: ${data.code.substring(0, 20)}...`);
+                    return {
+                        paymentCode: data.code,
+                        nymName: data.nymName || nymId,
+                        avatarUrl: data.avatarUrl || null
+                    };
+                }
+                throw new Error('Payment code not found in response');
+            } catch (error) {
+                console.error('💥 Failed to resolve nymName:', error);
+                throw new Error(`Could not find Paynym: ${nymId}`);
+            }
+        }
+
         // Parse Bitcoin signed message format
         function parseSignedMessageBlock(block) {
             if (!block || !block.trim()) {
@@ -1505,18 +1545,19 @@ Base64SignatureHere...
 
         // BIP47 Message Verifier
         async function verifyMessage() {
-            const paymentCode = document.getElementById('verify-pcode').value.trim();
+            let paymentCodeInput = document.getElementById('verify-pcode').value.trim();
             const signedBlock = document.getElementById('verify-signed-block').value;
             const outputDiv = document.getElementById('verify-output');
             const errorDiv = document.getElementById('verify-error');
             const btn = document.getElementById('verify-btn');
+            const previewDiv = document.getElementById('parsed-preview');
 
             // Hide previous results
             outputDiv.style.display = 'none';
             errorDiv.style.display = 'none';
 
-            if (!paymentCode) {
-                errorDiv.textContent = '❌ Payment code required';
+            if (!paymentCodeInput) {
+                errorDiv.textContent = '❌ Payment code or NymName required';
                 errorDiv.style.display = 'block';
                 return;
             }
@@ -1558,7 +1599,48 @@ Base64SignatureHere...
             btn.disabled = true;
             btn.innerHTML = '<span class="loading"></span>VERIFYING...';
 
+            let resolvedNymName = null;
+            let resolvedAvatarUrl = null;
+
             try {
+                // Check if input is a nymName and resolve it
+                let paymentCode = paymentCodeInput;
+                
+                if (isNymName(paymentCodeInput)) {
+                    console.log('🔍 Detected nymName, resolving...');
+                    btn.innerHTML = '<span class="loading"></span>RESOLVING NYMNAME...';
+                    
+                    try {
+                        const resolved = await resolveNymName(paymentCodeInput);
+                        paymentCode = resolved.paymentCode;
+                        resolvedNymName = resolved.nymName;
+                        resolvedAvatarUrl = resolved.avatarUrl;
+                        
+                        console.log(`✅ Resolved ${paymentCodeInput} → ${paymentCode.substring(0, 20)}...`);
+                        
+                        // Update preview to show resolved payment code
+                        const existingPreview = document.getElementById('resolved-pcode-preview');
+                        if (existingPreview) {
+                            existingPreview.remove();
+                        }
+                        
+                        const resolvedDiv = document.createElement('div');
+                        resolvedDiv.id = 'resolved-pcode-preview';
+                        resolvedDiv.className = 'parsed-item';
+                        resolvedDiv.style.cssText = 'padding: var(--space-sm); background: var(--bg-primary); border-radius: var(--radius-sm); border-left: 3px solid #66b2ff; margin-bottom: var(--space-sm);';
+                        resolvedDiv.innerHTML = `
+                            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Resolved from ${paymentCodeInput.startsWith('+') ? paymentCodeInput : '+' + paymentCodeInput}</div>
+                            <div style="font-size: 0.75rem; color: #66b2ff; font-family: monospace; word-break: break-all; margin-top: 0.25rem;">${paymentCode.substring(0, 40)}...</div>
+                        `;
+                        previewDiv.insertBefore(resolvedDiv, previewDiv.firstChild);
+                        
+                        btn.innerHTML = '<span class="loading"></span>VERIFYING...';
+                    } catch (resolveError) {
+                        console.error('💥 Failed to resolve nymName:', resolveError);
+                        throw new Error(`Could not resolve "${paymentCodeInput}": ${resolveError.message}`);
+                    }
+                }
+
                 console.log('🔍 Verifying message signature...');
                 const data = await apiPost('/api/bip47/verify-message', { 
                     paymentCode, 
@@ -1580,20 +1662,24 @@ Base64SignatureHere...
                 const signerDetails = document.getElementById('signer-details');
                 signerDetails.innerHTML = '';
 
+                // Use resolved nymName if available, otherwise from API response
+                const displayName = resolvedNymName || data.nymName || 'Unknown';
+                const displayAvatar = resolvedAvatarUrl || data.avatarUrl;
+
                 const infoItems = [
                     { label: 'Notification Address', value: data.notificationAddress || 'N/A' },
-                    { label: 'PayNym Name', value: data.nymName || 'Unknown' },
+                    { label: 'PayNym Name', value: displayName },
                     { label: 'Payment Code', value: paymentCode.substring(0, 30) + '...' }
                 ];
 
                 // Add avatar if available
-                if (data.avatarUrl) {
+                if (displayAvatar) {
                     const avatarItem = document.createElement('div');
                     avatarItem.className = 'derived-item';
                     avatarItem.innerHTML = `
                         <div class="derived-label">PayNym Avatar</div>
                         <div class="derived-value" style="text-align: center;">
-                            <img src="${data.avatarUrl}" alt="PayNym Avatar" 
+                            <img src="${displayAvatar}" alt="PayNym Avatar" 
                                  style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--accent-primary);"
                                  onerror="this.style.display='none'">
                         </div>
