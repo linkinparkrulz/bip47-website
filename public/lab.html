@@ -1655,7 +1655,7 @@ Base64SignatureHere...
                 const statusDiv = document.getElementById('verify-status');
                 if (data.valid) {
                     statusDiv.className = 'validation-status valid';
-                    statusDiv.innerHTML = '✅ MESSAGE VERIFIED<br><span style="font-size: 0.85rem; font-weight: normal;">Signature is valid for this payment code</span>';
+                    statusDiv.innerHTML = 'MESSAGE VERIFIED<br><span style="font-size: 0.85rem; font-weight: normal;">Signature is valid for this payment code</span>';
                 } else {
                     statusDiv.className = 'validation-status invalid';
                     statusDiv.innerHTML = '❌ VERIFICATION FAILED<br><span style="font-size: 0.85rem; font-weight: normal;">Signature does not match</span>';
@@ -1672,7 +1672,7 @@ Base64SignatureHere...
                 const infoItems = [
                     { label: 'Notification Address', value: data.notificationAddress || 'N/A' },
                     { label: 'PayNym Name', value: displayName },
-                    { label: 'Payment Code', value: paymentCode.substring(0, 30) + '...' }
+                    { label: 'Payment Code', value: paymentCode }
                 ];
 
                 // Add avatar if available
@@ -1701,10 +1701,10 @@ Base64SignatureHere...
                 });
 
                 outputDiv.style.display = 'block';
-                console.log(`✅ Verification complete: ${data.valid ? 'VALID' : 'INVALID'}`);
+                console.log(`Verification complete: ${data.valid ? 'VALID' : 'INVALID'}`);
 
             } catch (error) {
-                console.error('💥 Verification error:', error);
+                console.error('Verification error:', error);
                 errorDiv.textContent = `❌ ${error.message}`;
                 errorDiv.style.display = 'block';
             } finally {
