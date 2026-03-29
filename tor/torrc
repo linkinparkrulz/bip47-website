@@ -1,0 +1,11 @@
+# Tor hidden service configuration for paymentcode.io
+# This file is managed in the repository.
+# On the VPS, copy to /etc/tor/torrc and restart tor.
+
+# Don't relay traffic — hidden service only
+SocksPort 0
+Log notice stdout
+
+# Hidden service — proxies .onion:80 → localhost:3000
+HiddenServiceDir /var/lib/tor/hidden_service
+HiddenServicePort 80 127.0.0.1:3000
