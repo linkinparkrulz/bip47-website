@@ -46,6 +46,15 @@ async function connectToDatabase() {
 connectToDatabase();
 
 app.use(cors());
+
+// Advertise Tor hidden service to Tor Browser (Onion-Location standard)
+if (process.env.ONION_ADDRESS) {
+  app.use((req, res, next) => {
+    res.setHeader('Onion-Location', `http://${process.env.ONION_ADDRESS}${req.path}`);
+    next();
+  });
+}
+
 app.use(express.json());
 app.use(express.static('public'));
 
