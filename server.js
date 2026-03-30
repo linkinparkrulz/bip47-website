@@ -1,4 +1,5 @@
 // server.js - Manual BIP47 Auth47 implementation
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { MongoClient } from 'mongodb';
