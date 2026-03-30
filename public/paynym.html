@@ -889,7 +889,7 @@
     
     function buildFollowersCards(followers) {
       return followers.map(follower => `
-        <div class="follower-card" onclick="searchFollower('${follower.nymId}')">
+        <div class="follower-card" onclick="searchFollower('${follower.primaryCode || follower.nymName}')">
           <div class="follower-avatar">
             <img src="${follower.avatarUrl || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22><rect width=%22100%22 height=%22100%22 fill=%22%230a0e27%22/><text x=%2250%22 y=%2255%22 font-size=%2230%22 text-anchor=%22middle%22 fill=%22%2300ff41%22>?</text></svg>'}" 
                  alt="${follower.nymName}"
